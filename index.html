@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    
+    <title>Salon PRO POS</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<div id="activation-overlay" class="overlay-bg">
+    <div class="modal-box" style="text-align: center; max-width: 400px;">
+        <h2 style="margin-top:0; color:var(--brand-dark);">🔒 Software Locked</h2>
+        <div style="background: var(--bg-app); padding: 15px; border-radius: var(--radius-sm); margin: 10px 0;">
+            <small style="color:var(--text-muted); font-weight:700;">DEVICE ID</small>
+            <h3 id="display-device-id" style="margin: 5px 0 0 0; color: var(--brand-primary); font-family:monospace;">Loading...</h3>
+        </div>
+        <input type="text" id="activation-key-input" placeholder="Enter Activation or Master Key" style="text-align: center; font-family: monospace; margin-bottom: 10px;">
+        <button class="btn-primary" onclick="activateDevice()">Verify & Unlock</button>
+    </div>
+</div>
+
+<div id="admin-modal" class="overlay-bg">
+    <div class="modal-box" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3 style="margin:0; color:var(--brand-dark);">🛡️ Admin Portal</h3>
+            <button class="close-btn" onclick="closeAdminModal()">✖</button>
+        </div>
+        <p style="font-size: 13px; color: var(--text-muted); margin:0;">Enter Target Device ID to generate license.</p>
+        <input type="text" id="admin-target-id" placeholder="Paste Device ID here" style="font-family: monospace; text-align:center;">
+        <button class="btn-primary" onclick="generateAdminKey()">Generate Key</button>
+        <div id="admin-key-result" style="display:none; margin-top: 10px; padding: 12px; background: var(--surface-hover); border: 1px dashed var(--brand-primary); word-break: break-all; font-family: monospace; font-size: 13px; color: var(--brand-primary); font-weight: bold; text-align: center;"></div>
+    </div>
+</div>
+
+<div id="camera-modal" class="overlay-bg">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3 style="margin:0; font-size: 18px;">📷 Scan Barcode</h3>
+            <button class="close-btn" onclick="closeCamera()">✖</button>
+        </div>
+        <div id="qr-reader"></div>
+        <p style="font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 10px;">Point camera at barcode or SKU.</p>
+    </div>
+</div>
+
+<div id="checkout-modal" class="overlay-bg">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3 style="margin:0; font-size: 18px;">💳 Complete Checkout</h3>
+            <button class="close-btn" onclick="closeCheckout()">✖</button>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <select id="modal-staff-select"><option disabled selected>Select Staff</option></select>
+            <select id="modal-chair-select"><option disabled selected>Select Chair</option></select>
+        </div>
+        <input type="text" id="modal-cust-name" placeholder="Customer Name" required>
+        <input type="tel" id="modal-cust-phone" placeholder="Phone Number (Optional)">
+        <div style="background: var(--bg-app); padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                <span style="color:var(--text-muted); font-size:14px; font-weight:600;">Subtotal:</span>
+                <span id="modal-subtotal" style="font-weight:700;">₹0.00</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px dashed var(--border); padding-bottom: 10px;">
+                <span style="color:var(--text-muted); font-size:14px; font-weight:600;">Discount (₹):</span>
+                <input type="number" id="modal-discount" value="0" min="0" oninput="updateModalTotal()" style="width: 100px; margin:0; padding: 6px; text-align:right;">
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size:16px; font-weight:800; color:var(--brand-dark);">Final Total:</span>
+                <span id="modal-final-total" style="font-size:22px; font-weight:800; color:var(--brand-primary);">₹0.00</span>
+            </div>
+        </div>
+        <button class="btn-primary btn-success" style="padding: 16px; font-size: 16px;" onclick="generateBill()">🧾 Confirm & Print Bill</button>
+    </div>
+</div>
+
+<header class="top-bar">
+    <div class="nav-brand" onclick="adminAccess()">Salon<span>PRO</span></div>
+</header>
+
+<div class="container">
+    <div id="pos" class="tab-content active">
+        <div class="pos-grid">
+            <div class="products-panel">
+                <div class="sticky-search">
+                    <div class="scan-group">
+                        <input type="text" id="pos-search" placeholder="🔍 Search or Scan Barcode..." onkeyup="filterRetailPOS()" style="margin:0;">
+                        <button class="btn-scan" onclick="openCamera('pos')">📷</button>
+                    </div>
+                </div>
+                <h4 style="margin: 5px 0 10px 0; font-size: 12px; color: var(--text-muted); font-weight: 700;">SERVICES</h4>
+                <div id="services-grid" class="item-grid" style="margin-bottom: 20px;"></div>
+                <h4 style="margin: 5px 0 10px 0; font-size: 12px; color: var(--text-muted); font-weight: 700;">RETAIL PRODUCTS</h4>
+                <div id="retail-grid" class="item-grid"></div>
+            </div>
+            
+            <div class="cart-panel">
+                <div class="cart-panel-header">
+                    <h3 style="margin:0; font-size: 15px; display: flex; justify-content: space-between; align-items: center;">
+                        📝 Cart Items 
+                        <small id="retail-only-badge" style="display:none; color:var(--retail); font-size: 10px; padding: 4px 8px; background: rgba(139, 92, 246, 0.1); border-radius: 6px;">RETAIL ONLY</small>
+                    </h3>
+                </div>
+                <div class="cart-items-wrapper" id="cart-items"></div>
+                <div class="cart-footer-fixed">
+                    <div class="floating-checkout-pill">
+                        <div>
+                            <div style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Subtotal</div>
+                            <div id="cart-subtotal" style="font-size: 20px; font-weight: 800; color: #fff;">₹0.00</div>
+                        </div>
+                        <button class="btn-primary" style="width: auto; padding: 10px 24px; font-size: 14px;" onclick="openCheckout()">Checkout ➔</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="history" class="tab-content" style="overflow-y: auto;">
+        <div class="generic-panel">
+            <div style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="flex:1; min-width: 140px;">
+                    <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block;">DATE</label>
+                    <input type="date" id="hist-date-filter" onchange="filterHistory()" style="margin:0;">
+                </div>
+                <div style="flex:1; min-width: 140px;">
+                    <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block;">STAFF</label>
+                    <select id="hist-staff-filter" onchange="filterHistory()" style="margin:0;"><option value="all">All Staff & Retail</option></select>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-primary" style="width: auto; padding: 12px;" onclick="resetFilters()">Reset</button>
+                    <button class="btn-excel" onclick="exportToCSV('daily')">📥 Daily</button>
+                    <button class="btn-excel" onclick="exportToCSV('monthly')" style="background-color: var(--brand-primary);">📥 Monthly</button>
+                </div>
+            </div>
+        </div>
+        <div class="generic-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin:0;">📋 Billing Statements</h3>
+                <div style="text-align: right;">
+                    <span style="font-size: 11px; color: var(--text-muted); font-weight: 700;">REVENUE</span><br>
+                    <span id="hist-total-sales" style="font-size: 20px; font-weight: 800; color: var(--brand-primary);">₹0.00</span>
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table id="history-table">
+                    <thead><tr><th>Date</th><th>Customer</th><th>Staff/Type</th><th>Items</th><th>Total</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="inventory" class="tab-content" style="overflow-y: auto;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+            <div class="generic-panel">
+                <h3 style="margin-top:0;">➕ Add Retail Product</h3>
+                <input type="text" id="inv-name" placeholder="Product Name">
+                <input type="text" id="inv-brand" placeholder="Brand Name">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <input type="text" id="inv-category" placeholder="Category">
+                    <input type="number" id="inv-stock" placeholder="Stock Qty">
+                </div>
+                <div class="scan-group" style="margin: 8px 0 16px 0;">
+                    <input type="text" id="inv-sku" placeholder="SKU / Barcode" style="margin:0;">
+                    <button class="btn-scan" onclick="openCamera('inv')">📷</button>
+                </div>
+                <input type="number" id="inv-price" placeholder="Selling Price (₹)">
+                <button class="btn-primary" onclick="addInventory()">Save Product</button>
+            </div>
+            <div class="generic-panel" style="grid-column: 1 / -1;">
+                <h3 style="margin-top:0;">📦 Inventory List</h3>
+                <div class="table-responsive">
+                    <table id="inventory-table">
+                        <thead><tr><th>Product</th><th>Category</th><th>SKU</th><th>Price</th><th>Stock</th><th>Action</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings" class="tab-content settings-grid">
+        <div class="generic-panel" style="grid-column: 1 / -1; border-color: var(--danger); background: #fef2f2;">
+            <h3 style="margin-top:0; color: var(--danger);">🔒 Security</h3>
+            <p style="font-size: 13px; color: #7f1d1d; margin-top: 0; margin-bottom: 15px;">Lock this device to prevent unauthorized access.</p>
+            <button class="btn-lock" onclick="logoutDevice()">Lock Application Now</button>
+        </div>
+        <div class="generic-panel" style="grid-column: 1 / -1; border-color: var(--brand-primary); background: #eff6ff;">
+            <h3 style="margin-top:0; color: var(--brand-primary);">💾 Backup & Restore</h3>
+            <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                <button class="btn-primary" style="flex:1; max-width: 250px;" onclick="DatabaseService.exportDataToFile()">⬇️ Download Backup</button>
+                <input type="file" id="import-file" accept=".json" style="margin:0; flex:1; background: white;" onchange="DatabaseService.importDataFromFile(event)">
+            </div>
+        </div>
+        <div class="generic-panel" style="grid-column: 1 / -1;">
+            <h3 style="margin-top:0;">🏪 Shop Identity</h3>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 2; min-width: 200px;">
+                    <input type="text" id="set-shop-name" placeholder="Business Name">
+                    <input type="file" id="set-shop-logo" accept="image/*" onchange="encodeLogo()">
+                    <button class="btn-primary" style="max-width: 200px;" onclick="saveShopIdentity()">Save Identity</button>
+                </div>
+                <div style="flex: 1; text-align: center; border: 2px dashed var(--border); padding: 10px; border-radius: var(--radius-md);">
+                    <img id="logo-preview" src="" style="max-width: 80px; max-height: 80px; display: none;">
+                </div>
+            </div>
+        </div>
+        <div class="generic-panel">
+            <h3 style="margin-top:0;">✂️ Services</h3>
+            <input type="text" id="set-service-name" placeholder="Service Name">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <input type="text" id="set-service-cat" placeholder="Category">
+                <input type="number" id="set-service-price" placeholder="Price (₹)">
+            </div>
+            <button class="btn-primary" onclick="addService()">Add Service</button>
+            <div id="settings-services-list" style="margin-top: 15px; max-height: 200px; overflow-y: auto;"></div>
+        </div>
+        <div class="generic-panel">
+            <h3 style="margin-top:0;">👨‍🎨 Staff & Chairs</h3>
+            <input type="text" id="set-staff-name" placeholder="Staff Name">
+            <button class="btn-primary" onclick="addStaff()">Add Staff</button>
+            <div id="settings-staff-list" style="margin: 10px 0; max-height: 120px; overflow-y: auto;"></div>
+            <input type="text" id="set-chair-name" placeholder="Chair/Room Name" style="margin-top:20px;">
+            <button class="btn-primary" onclick="addChair()">Add Chair</button>
+            <div id="settings-chair-list" style="margin-top: 10px; max-height: 120px; overflow-y: auto;"></div>
+        </div>
+    </div>
+</div>
+
+<nav class="bottom-nav">
+    <button class="tab-link active" onclick="openTab('pos')">🛒 POS</button>
+    <button class="tab-link" onclick="openTab('history')">📊 Reports</button>
+    <button class="tab-link" onclick="openTab('inventory')">📦 Inventory</button>
+    <button class="tab-link" onclick="openTab('settings')">⚙️ Settings</button>
+</nav>
+
+<div id="print-receipt">
+    <div class="receipt-header">
+        <img id="print-logo" src="" style="display:none;">
+        <h2 id="print-shop-name">Shop Name</h2>
+        <div style="font-size: 11px; margin-top:3px;">Tax Invoice</div>
+    </div>
+    <div style="margin-bottom: 10px; font-size: 11px;">
+        <div><strong>Date:</strong> <span id="print-date"></span></div>
+        <div><strong>Cust:</strong> <span id="print-cust"></span></div>
+        <div id="print-staff-div"><strong>Staff:</strong> <span id="print-staff"></span></div>
+    </div>
+    <div id="print-services-section" style="display:none;"><div style="border-bottom: 1px solid #000; font-weight:bold;">[ SERVICES ]</div><table class="receipt-table"><tbody id="print-items-services"></tbody></table></div>
+    <div id="print-products-section" style="display:none;"><div style="border-bottom: 1px solid #000; font-weight:bold;">[ PRODUCTS ]</div><table class="receipt-table"><tbody id="print-items-products"></tbody></table></div>
+    <div class="receipt-totals">
+        <div>Subtotal: ₹<span id="print-subtotal"></span></div>
+        <div>Discount: ₹<span id="print-discount"></span></div>
+        <div style="font-size: 16px; font-weight: bold; border-top:2px solid #000; margin-top:5px;">Net Total: ₹<span id="print-final-total"></span></div>
+    </div>
+    <div class="receipt-footer">*** Thank you! ***</div>
+</div>
+
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('Service Worker Registered!', reg))
+                .catch(err => console.log('Service Worker registration failed: ', err));
+        });
+    }
+</script>
+</body>
+</html>
