@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pro Salon POS - Final PWA Edition</title>
+    
+    <!-- PWA Settings -->
     <meta name="theme-color" content="#0f172a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="manifest" href="manifest.json">
-    
-    <title>Salon PRO POS</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
@@ -20,6 +21,7 @@
 
 <div id="toast-container"></div>
 
+<!-- ACTIVATION SCREEN -->
 <div id="activation-overlay" class="overlay-bg">
     <div class="modal-box" style="text-align: center; max-width: 400px;">
         <h2 style="margin-top:0; color:var(--brand-dark);">🔒 Software Locked</h2>
@@ -32,19 +34,20 @@
     </div>
 </div>
 
+<!-- ADMIN GENERATOR -->
 <div id="admin-modal" class="overlay-bg">
     <div class="modal-box" style="max-width: 400px;">
         <div class="modal-header">
             <h3 style="margin:0; color:var(--brand-dark);">🛡️ Admin Portal</h3>
             <button class="close-btn" onclick="closeAdminModal()">✖</button>
         </div>
-        <p style="font-size: 13px; color: var(--text-muted); margin:0;">Enter Target Device ID to generate license.</p>
         <input type="text" id="admin-target-id" placeholder="Paste Device ID here" style="font-family: monospace; text-align:center;">
         <button class="btn-primary" onclick="generateAdminKey()">Generate Key</button>
         <div id="admin-key-result" style="display:none; margin-top: 10px; padding: 12px; background: var(--surface-hover); border: 1px dashed var(--brand-primary); word-break: break-all; font-family: monospace; font-size: 13px; color: var(--brand-primary); font-weight: bold; text-align: center;"></div>
     </div>
 </div>
 
+<!-- CAMERA SCANNER -->
 <div id="camera-modal" class="overlay-bg">
     <div class="modal-box">
         <div class="modal-header">
@@ -52,10 +55,11 @@
             <button class="close-btn" onclick="closeCamera()">✖</button>
         </div>
         <div id="qr-reader"></div>
-        <p style="font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 10px;">Point camera at barcode or SKU.</p>
+        <p style="font-size: 12px; color: var(--text-muted); text-align: center; margin-top: 10px;">Point camera at barcode. Will auto-append multiple SKUs.</p>
     </div>
 </div>
 
+<!-- CHECKOUT MODAL -->
 <div id="checkout-modal" class="overlay-bg">
     <div class="modal-box">
         <div class="modal-header">
@@ -86,11 +90,13 @@
     </div>
 </div>
 
+<!-- HEADER -->
 <header class="top-bar">
     <div class="nav-brand" onclick="adminAccess()">Salon<span>PRO</span></div>
 </header>
 
 <div class="container">
+    <!-- POS Section -->
     <div id="pos" class="tab-content active">
         <div class="pos-grid">
             <div class="products-panel">
@@ -105,13 +111,10 @@
                 <h4 style="margin: 5px 0 10px 0; font-size: 12px; color: var(--text-muted); font-weight: 700;">RETAIL PRODUCTS</h4>
                 <div id="retail-grid" class="item-grid"></div>
             </div>
-            
             <div class="cart-panel">
                 <div class="cart-panel-header">
-                    <h3 style="margin:0; font-size: 15px; display: flex; justify-content: space-between; align-items: center;">
-                        📝 Cart Items 
-                        <small id="retail-only-badge" style="display:none; color:var(--retail); font-size: 10px; padding: 4px 8px; background: rgba(139, 92, 246, 0.1); border-radius: 6px;">RETAIL ONLY</small>
-                    </h3>
+                    <h3 style="margin:0; font-size: 15px;">📝 Cart Items</h3>
+                    <small id="retail-only-badge" style="display:none; color:var(--retail); font-size: 10px; padding: 4px 8px; background: rgba(139, 92, 246, 0.1); border-radius: 6px; font-weight: bold;">RETAIL ONLY</small>
                 </div>
                 <div class="cart-items-wrapper" id="cart-items"></div>
                 <div class="cart-footer-fixed">
@@ -127,21 +130,21 @@
         </div>
     </div>
 
+    <!-- History Section -->
     <div id="history" class="tab-content" style="overflow-y: auto;">
         <div class="generic-panel">
             <div style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;">
                 <div style="flex:1; min-width: 140px;">
-                    <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block;">DATE</label>
+                    <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">DATE</label>
                     <input type="date" id="hist-date-filter" onchange="filterHistory()" style="margin:0;">
                 </div>
                 <div style="flex:1; min-width: 140px;">
-                    <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block;">STAFF</label>
+                    <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px;">STAFF</label>
                     <select id="hist-staff-filter" onchange="filterHistory()" style="margin:0;"><option value="all">All Staff & Retail</option></select>
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <button class="btn-primary" style="width: auto; padding: 12px;" onclick="resetFilters()">Reset</button>
-                    <button class="btn-excel" onclick="exportToCSV('daily')">📥 Daily</button>
-                    <button class="btn-excel" onclick="exportToCSV('monthly')" style="background-color: var(--brand-primary);">📥 Monthly</button>
+                    <button class="btn-primary btn-success" style="width: auto; padding: 12px;" onclick="exportToCSV('daily')">📥 Daily</button>
                 </div>
             </div>
         </div>
@@ -155,35 +158,44 @@
             </div>
             <div class="table-responsive">
                 <table id="history-table">
-                    <thead><tr><th>Date</th><th>Customer</th><th>Staff/Type</th><th>Items</th><th>Total</th></tr></thead>
+                    <thead><tr><th>Date</th><th>Customer</th><th>Staff/Type</th><th>Items</th><th>Total</th><th>Action</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
         </div>
     </div>
 
+    <!-- Inventory Section -->
     <div id="inventory" class="tab-content" style="overflow-y: auto;">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
             <div class="generic-panel">
-                <h3 style="margin-top:0;">➕ Add Retail Product</h3>
+                <h3 style="margin-top:0;" id="inv-form-title">➕ Add Retail Product</h3>
                 <input type="text" id="inv-name" placeholder="Product Name">
                 <input type="text" id="inv-brand" placeholder="Brand Name">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-                    <input type="text" id="inv-category" placeholder="Category">
+                    <input type="text" id="inv-category" placeholder="Category (e.g. Shampoo)">
                     <input type="number" id="inv-stock" placeholder="Stock Qty">
                 </div>
                 <div class="scan-group" style="margin: 8px 0 16px 0;">
-                    <input type="text" id="inv-sku" placeholder="SKU / Barcode" style="margin:0;">
+                    <input type="text" id="inv-sku" placeholder="SKUs (Comma separated)" style="margin:0;" title="Scan multiple barcodes here">
                     <button class="btn-scan" onclick="openCamera('inv')">📷</button>
                 </div>
                 <input type="number" id="inv-price" placeholder="Selling Price (₹)">
-                <button class="btn-primary" onclick="addInventory()">Save Product</button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-primary" id="btn-save-inv" onclick="addInventory()">Save Product</button>
+                    <button class="btn-primary btn-warning" id="btn-cancel-inv" onclick="cancelInventoryEdit()" style="display:none;">Cancel</button>
+                </div>
             </div>
             <div class="generic-panel" style="grid-column: 1 / -1;">
-                <h3 style="margin-top:0;">📦 Inventory List</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="margin:0;">📦 Inventory List</h3>
+                    <select id="inv-cat-filter" onchange="renderInventoryTable()" style="width: auto; margin:0; min-width: 200px;">
+                        <option value="all">All Categories</option>
+                    </select>
+                </div>
                 <div class="table-responsive">
                     <table id="inventory-table">
-                        <thead><tr><th>Product</th><th>Category</th><th>SKU</th><th>Price</th><th>Stock</th><th>Action</th></tr></thead>
+                        <thead><tr><th>Product</th><th>Category</th><th>SKUs (Batches)</th><th>Price</th><th>Stock</th><th>Action</th></tr></thead>
                         <tbody></tbody>
                     </table>
                 </div>
@@ -191,11 +203,12 @@
         </div>
     </div>
 
+    <!-- Settings Section -->
     <div id="settings" class="tab-content settings-grid">
         <div class="generic-panel" style="grid-column: 1 / -1; border-color: var(--danger); background: #fef2f2;">
             <h3 style="margin-top:0; color: var(--danger);">🔒 Security</h3>
             <p style="font-size: 13px; color: #7f1d1d; margin-top: 0; margin-bottom: 15px;">Lock this device to prevent unauthorized access.</p>
-            <button class="btn-lock" onclick="logoutDevice()">Lock Application Now</button>
+            <button class="btn-primary" style="background: var(--danger);" onclick="logoutDevice()">Lock Application Now</button>
         </div>
         <div class="generic-panel" style="grid-column: 1 / -1; border-color: var(--brand-primary); background: #eff6ff;">
             <h3 style="margin-top:0; color: var(--brand-primary);">💾 Backup & Restore</h3>
@@ -239,6 +252,7 @@
     </div>
 </div>
 
+<!-- BOTTOM NAV -->
 <nav class="bottom-nav">
     <button class="tab-link active" onclick="openTab('pos')">🛒 POS</button>
     <button class="tab-link" onclick="openTab('history')">📊 Reports</button>
@@ -246,6 +260,7 @@
     <button class="tab-link" onclick="openTab('settings')">⚙️ Settings</button>
 </nav>
 
+<!-- PRINT RECEIPT -->
 <div id="print-receipt">
     <div class="receipt-header">
         <img id="print-logo" src="" style="display:none;">
@@ -267,12 +282,57 @@
     <div class="receipt-footer">*** Thank you! ***</div>
 </div>
 
+<!-- PWA Registration & Auto Update -->
 <script>
     if ('serviceWorker' in navigator) {
+        let newWorker;
+        function showUpdateNotification() {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div'); 
+            toast.className = `toast`;
+            toast.style.backgroundColor = 'var(--brand-primary)'; 
+            toast.style.flexDirection = 'column';
+            toast.style.alignItems = 'flex-start';
+            
+            toast.innerHTML = `
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                    <span style="font-size: 20px;">🚀</span> 
+                    <strong style="font-size: 15px;">New Update Available!</strong>
+                </div>
+                <div style="font-size: 13px; margin-bottom: 12px; color: #e2e8f0;">
+                    A new version has been downloaded in the background.
+                </div>
+                <button id="btn-apply-update" style="background: white; color: var(--brand-primary); border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%;">
+                    Apply Update Now
+                </button>
+            `;
+            container.appendChild(toast);
+            toast.style.transform = 'translateX(0)';
+
+            document.getElementById('btn-apply-update').addEventListener('click', () => {
+                if (newWorker) newWorker.postMessage('SKIP_WAITING');
+            });
+        }
+
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js')
-                .then(reg => console.log('Service Worker Registered!', reg))
-                .catch(err => console.log('Service Worker registration failed: ', err));
+            navigator.serviceWorker.register('./sw.js').then(reg => {
+                reg.addEventListener('updatefound', () => {
+                    newWorker = reg.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            showUpdateNotification();
+                        }
+                    });
+                });
+            });
+            
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
+            });
         });
     }
 </script>
